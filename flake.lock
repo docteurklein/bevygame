@@ -1,0 +1,48 @@
+{
+  "nodes": {
+    "bevy-flake": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1793438069,
+        "narHash": "sha256-CPVVFy9ccziMSeOV+BGhker+nJyrFOtG7IGYZPn/Sgw=",
+        "owner": "swagtop",
+        "repo": "bevy-flake",
+        "rev": "c451e9aa8d84bf21ca9d4423dab502fad54ab683",
+        "type": "github"
+      },
+      "original": {
+        "owner": "swagtop",
+        "repo": "bevy-flake",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1794386569,
+        "narHash": "sha256-x9sADJvoVG0L6RejZB+/BB4YiGZFBZrfTlhF4uBq1tQ=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "d4f25a3e562008648d45bcf2d70bcc7422cad84e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "bevy-flake": "bevy-flake",
+        "nixpkgs": "nixpkgs"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
