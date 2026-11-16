@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy::picking::backend::ray::RayMap;
 use bevy::picking::events::{PointerPress, PointerRelease};
+use bevy::picking::hover::PointerCaptureMap;
 use bevy::{
     camera_controller::free_camera::{
         FreeCamera, FreeCameraPlugin,
@@ -158,6 +159,7 @@ fn on_drag_press(
     trigger: On<PointerPress>,
     mut commands: Commands,
     mut drag: ResMut<DragState>,
+    mut capture: ResMut<PointerCaptureMap>,
     bodies: Query<&RigidBody>,
     cameras: Query<&GlobalTransform, With<Camera>>,
 ) {
@@ -165,6 +167,9 @@ fn on_drag_press(
     let target = trigger.entity;
     if bodies.get(target) != Ok(&RigidBody::Dynamic) { return; }
     let Some(hit_point) = trigger.hit.position else { return; };
+    // Capture the pointer so `PointerRelease` still targets this ball even if the
+    // cursor drifts off it while dragging (the ball lags behind the spring).
+    capture.capture(trigger.pointer.id, target, trigger.hit.clone());
     let anchor = commands.spawn((
         DragAnchor,
         Transform::from_translation(hit_point),
