@@ -1,3 +1,4 @@
+use bevy::dev_tools::fps_overlay::FpsOverlayPlugin;
 use bevy::prelude::*;
 use bevy::input::mouse::{MouseScrollPixelsPerLine, MouseScrollUnit};
 use bevy::picking::backend::ray::RayMap;
@@ -13,13 +14,18 @@ use bevytiles::{height::HeightGrid, prelude::*, store::Tile, TerrainSet};
 use bevy_rapier3d::prelude::*;
 
 fn main() {
+
+    let world_config = WorldConfig::from_lat_lon(46.02317177011591, 3.6486635395039237);
+    
     App::new()
         .add_plugins(DefaultPlugins)
         // .add_plugins(HanabiPlugin)
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(RapierPickingPlugin)
         // .add_plugins(RapierDebugRenderPlugin::default())
-        .insert_resource(WorldConfig::from_lat_lon(46.02317177011591, 3.6486635395039237))
+        .add_plugins(FpsOverlayPlugin::default())
+        .insert_resource(world_config)
+        .insert_resource(RenderingConfig {height_scale: 3.0, ..Default::default()})
         .add_plugins(TerrainPlugin)
         .add_plugins(FreeCameraPlugin)
         .add_systems(Startup, |mut c: Commands, w: Res<WorldConfig>| {
@@ -30,28 +36,13 @@ fn main() {
                 FreeCamera {
                     sensitivity: 0.2,
                     friction: 25.0,
-                    walk_speed: 900.0,
+                    walk_speed: 300.0,
                     run_speed: 9000.0,
                     ..default()
                 },
             ));
         })
         .add_systems(Startup, setup_ball_visuals)
-        // .add_systems(Update, |
-        //     mut cams: Query<&mut Transform, With<TerrainCamera>>,
-        //     freecam: Query<&Transform, With<FreeCameraState>>
-        // | {
-        //     let Ok(mut tf) = cams.single_mut() else {
-        //         return;
-        //     };
-        //     let Ok(fc) = freecam.single() else {
-        //         return;
-        //     };
-        //     // tf.translation = fc.translation;
-        //     // tf.rotation = fc.rotation;
-        //     // tf.scale = fc.scale;
-        // })
-        // .add_systems(Startup, setup)
         .init_resource::<DragState>()
         .add_systems(Update, fire)
         .add_systems(Update, move_drag_anchor)
@@ -134,7 +125,7 @@ struct BallVisuals {
 
 fn setup_ball_visuals(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
     commands.insert_resource(BallVisuals {
-        mesh: meshes.add(Sphere::new(0.5).mesh().ico(5).unwrap()),
+        mesh: meshes.add(Sphere::new(2.0).mesh().ico(5).unwrap()),
     });
 }
 
@@ -172,6 +163,7 @@ fn on_drag_press(
     // Capture the pointer so `PointerRelease` still targets this ball even if the
     // cursor drifts off it while dragging (the ball lags behind the spring).
     capture.capture(trigger.pointer.id, target, trigger.hit.clone());
+
     let anchor = commands.spawn((
         DragAnchor,
         Transform::from_translation(hit_point),
@@ -179,12 +171,28 @@ fn on_drag_press(
         Collider::ball(0.01),
         CollisionGroups::new(Group::NONE, Group::NONE),
     )).id();
-    let spring = SpringJointBuilder::new(0.0, 500.0, 20.0)
+    // let spring = SpringJointBuilder::new(0.0, 1000.0, 1000.0)
+    //     .local_anchor2(Vec3::ZERO)
+    //     .contacts_enabled(false)
+    //     .spring_model(MotorModel::AccelerationBased)
+    //     .build()
+    // ;
+    // let rope = RopeJointBuilder::new(1.0)
+    //     .local_anchor2(Vec3::ZERO)
+    //     // .motor_model(MotorModel::AccelerationBased)
+    //     .build()
+    // ;
+    let stiff = GenericJointBuilder::new(JointAxesMask::empty())
         .local_anchor2(Vec3::ZERO)
-        .contacts_enabled(false)
-        .build();
-    let joint = commands.spawn(ImpulseJoint::new(anchor, spring)).id();
+        .motor_position(JointAxis::LinX, 0.0, 1000.0, 50.0)
+        .motor_position(JointAxis::LinY, 0.0, 1000.0, 50.0)
+        .motor_position(JointAxis::LinZ, 0.0, 1000.0, 50.0)
+    ;
+    
+    let joint = commands.spawn(ImpulseJoint::new(anchor, stiff)).id();
+
     commands.entity(target).add_child(joint);
+
     if let Ok(cam_tf) = cameras.single() {
         drag.drag_depth = cam_tf.translation().distance(hit_point);
     }
@@ -215,9 +223,6 @@ fn move_drag_anchor(
     }
 }
 
-/// Distance in meters the dragged anchor moves per scroll line.
-const DRAG_SCROLL_STEP_M: f32 = 2.0;
-
 /// Move the dragged ball forward/backward along the camera ray with the mouse wheel.
 fn scroll_drag_anchor(
     mut scrolls: MessageReader<PointerScroll>,
@@ -234,7 +239,7 @@ fn scroll_drag_anchor(
             MouseScrollUnit::Pixel => scroll.y / **pixels_per_line,
         };
         // Scroll up moves the ball forward (away from the camera).
-        drag.drag_depth = (drag.drag_depth + lines * DRAG_SCROLL_STEP_M).max(0.5);
+        drag.drag_depth = (drag.drag_depth + lines * 10.0).max(0.5);
     }
 }
 
@@ -246,6 +251,7 @@ fn fire(
     visuals: Res<BallVisuals>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut ball_count: Local<u32>,
+    meshes: Res<Assets<Mesh>>,
 ) {
     if !buttons.pressed(KeyCode::Space) {
         return;
@@ -267,7 +273,7 @@ fn fire(
     *ball_count = ball_count.wrapping_add(1);
     commands
         .spawn((RigidBody::Dynamic, RapierPickable, Visibility::default()))
-        .insert(Collider::ball(0.5))
+        .insert(Collider::from_bevy_mesh(meshes.get(visuals.mesh.id()).unwrap(), &ComputedColliderShape::ConvexHull).unwrap())
         .insert(Restitution::coefficient(0.7))
         .insert(Mesh3d(visuals.mesh.clone()))
         .insert(MeshMaterial3d(material))

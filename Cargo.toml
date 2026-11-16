@@ -4,10 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bevy = { version = "0.20.1", features = ["dynamic_linking", "free_camera"] }
+bevy = { version = "0.20.1", features = ["dynamic_linking", "free_camera", "bevy_dev_tools", "render_dev_tools"] }
 # bevy_hanabi = { version = "0.20.0", features = ["3d"] }
 bevy_rapier3d = "0.37.0"
-bevytiles = { git = "https://github.com/ziv/bevytiles", tag = "v0.2.0" }
+bevytiles = { path = "../bevytiles" }
+# bevytiles = { git = "https://github.com/ziv/bevytiles", tag = "v0.2.0" }
 
 [profile.dev]
 opt-level = 1

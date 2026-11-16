@@ -785,6 +785,7 @@ dependencies = [
  "bevy_audio",
  "bevy_camera",
  "bevy_color",
+ "bevy_core_pipeline",
  "bevy_diagnostic",
  "bevy_ecs",
  "bevy_extract",
@@ -794,6 +795,7 @@ dependencies = [
  "bevy_log",
  "bevy_math",
  "bevy_mesh",
+ "bevy_pbr",
  "bevy_picking",
  "bevy_platform",
  "bevy_reflect",
@@ -805,6 +807,7 @@ dependencies = [
  "bevy_time",
  "bevy_transform",
  "bevy_ui",
+ "bevy_ui_render",
  "bevy_ui_widgets",
  "bevy_window",
  "bevy_world_serialization",
@@ -2045,7 +2048,6 @@ dependencies = [
 [[package]]
 name = "bevytiles"
 version = "0.2.0"
-source = "git+https://github.com/ziv/bevytiles?tag=v0.2.0#855befbd0279ab477d32bead92778bed239a6ea4"
 dependencies = [
  "bevy",
  "crossbeam-channel",
