@@ -1,6 +1,7 @@
 use bevy::prelude::*;
+use bevy::input::mouse::{MouseScrollPixelsPerLine, MouseScrollUnit};
 use bevy::picking::backend::ray::RayMap;
-use bevy::picking::events::{PointerPress, PointerRelease};
+use bevy::picking::events::{PointerPress, PointerRelease, PointerScroll};
 use bevy::picking::hover::PointerCaptureMap;
 use bevy::{
     camera_controller::free_camera::{
@@ -54,6 +55,7 @@ fn main() {
         .init_resource::<DragState>()
         .add_systems(Update, fire)
         .add_systems(Update, move_drag_anchor)
+        .add_systems(Update, scroll_drag_anchor.before(move_drag_anchor))
         .add_systems(Update, spawn_terrain_colliders.after(TerrainSet::Promote))
         .run()
     ;
@@ -210,6 +212,29 @@ fn move_drag_anchor(
     for (_, ray) in ray_map.map.iter() {
         tf.translation = ray.origin + *ray.direction * drag.drag_depth;
         break;
+    }
+}
+
+/// Distance in meters the dragged anchor moves per scroll line.
+const DRAG_SCROLL_STEP_M: f32 = 2.0;
+
+/// Move the dragged ball forward/backward along the camera ray with the mouse wheel.
+fn scroll_drag_anchor(
+    mut scrolls: MessageReader<PointerScroll>,
+    pixels_per_line: Res<MouseScrollPixelsPerLine>,
+    mut drag: ResMut<DragState>,
+) {
+    if drag.joint.is_none() {
+        scrolls.clear();
+        return;
+    }
+    for scroll in scrolls.read() {
+        let lines = match scroll.unit {
+            MouseScrollUnit::Line => scroll.y,
+            MouseScrollUnit::Pixel => scroll.y / **pixels_per_line,
+        };
+        // Scroll up moves the ball forward (away from the camera).
+        drag.drag_depth = (drag.drag_depth + lines * DRAG_SCROLL_STEP_M).max(0.5);
     }
 }
 
