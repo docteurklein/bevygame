@@ -120,6 +120,9 @@ fn main() {
 //         Transform::from_translation(w.initial_position(5000.0))
 //     ));
 // }
+/// Speed in m/s at which fired balls are launched from the camera.
+const BALL_LAUNCH_SPEED: f32 = 40.0;
+
 /// Shared sphere mesh used to render fired balls (matches `Collider::ball(0.5)`).
 #[derive(Resource)]
 struct BallVisuals {
@@ -143,12 +146,14 @@ fn random_ball_color(seed: u32) -> Color {
 
 #[derive(Component)]
 struct DragAnchor;
+
 #[derive(Resource, Default)]
 struct DragState {
     anchor: Option<Entity>,
     joint: Option<Entity>,
     drag_depth: f32,
 }
+
 fn on_drag_press(
     trigger: On<PointerPress>,
     mut commands: Commands,
@@ -179,6 +184,7 @@ fn on_drag_press(
     drag.anchor = Some(anchor);
     drag.joint = Some(joint);
 }
+
 fn on_drag_release(
     _trigger: On<PointerRelease>,
     mut commands: Commands,
@@ -187,6 +193,7 @@ fn on_drag_release(
     if let Some(j) = drag.joint.take() { commands.entity(j).despawn(); }
     if let Some(a) = drag.anchor.take() { commands.entity(a).despawn(); }
 }
+
 fn move_drag_anchor(
     drag: Res<DragState>,
     ray_map: Res<RayMap>,
@@ -218,7 +225,10 @@ fn fire(
     let Ok((camera, cam_transform)) = cameras.single() else { return };
     // Convert the click to a world-space ray and spawn along it.
     let Ok(ray) = camera.viewport_to_world(cam_transform, cursor) else { return };
+    let cam_pos = cam_transform.translation();
     let spawn_pos = ray.origin + ray.direction * 10.0;
+    // Launch the ball away from the free camera, toward the cursor.
+    let launch_dir = (spawn_pos - cam_pos).normalize_or_zero();
     let material = materials.add(StandardMaterial {
         base_color: random_ball_color(*ball_count),
         perceptual_roughness: 0.4,
@@ -232,7 +242,7 @@ fn fire(
         .insert(Mesh3d(visuals.mesh.clone()))
         .insert(MeshMaterial3d(material))
         .insert(Transform::from_translation(spawn_pos))
-        .insert(Velocity::linear(Vec3::new(0.0, 0.0, 10.0)))
+        .insert(Velocity::linear(launch_dir * BALL_LAUNCH_SPEED))
         .observe(on_drag_press)
         .observe(on_drag_release)
     ;
